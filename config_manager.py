@@ -10,6 +10,13 @@ CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.j
 DEFAULT_CONFIG = {
     "username": "",
     "password": "",
+    "login_url": "https://productores.sancristobal.com.ar",
+    "headless": False,
+    "schedule": {
+        "enabled": False,
+        "days": [],  # [0,1,2,3,4,5,6] where 0=Monday
+        "time": "08:00"
+    }
 }
 
 

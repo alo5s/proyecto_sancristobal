@@ -173,10 +173,12 @@ class ManagerBot:
         try:
             # Abrir dropdown de fecha
             self.page.locator("#dateRange__input").click()
-            # Esperar que aparezcan los items
-            self.page.locator(".sc-select__items").wait_for(state="visible", timeout=5000)
-            # Click en la opción correcta
-            self.page.locator(".sc-select__item:visible", has_text="Próximos 7 días").first.click(force=True)
+            
+            # Esperar y hacer clic en la opción (usar :visible para evitar ambigüedad)
+            item = self.page.locator(".sc-select__item:visible", has_text="Próximos 7 días").first
+            item.wait_for(state="visible", timeout=5000)
+            item.click(force=True)
+            
             print("✓ Próximos 7 días seleccionado")
             self.page.wait_for_timeout(1000)
             return True
@@ -190,10 +192,12 @@ class ManagerBot:
         try:
             # Abrir dropdown de fecha
             self.page.locator("#dateRange__input").click()
-            # Esperar que aparezcan los items
-            self.page.locator(".sc-select__items").wait_for(state="visible", timeout=5000)
-            # Click en la opción correcta
-            self.page.locator(".sc-select__item:visible", has_text="Próximos 8 a 15 días").first.click(force=True)
+            
+            # Esperar y hacer clic en la opción (usar :visible para evitar ambigüedad)
+            item = self.page.locator(".sc-select__item:visible", has_text="Próximos 8 a 15 días").first
+            item.wait_for(state="visible", timeout=5000)
+            item.click(force=True)
+            
             print("✓ Próximos 8 a 15 días seleccionado")
             self.page.wait_for_timeout(1000)
             return True
@@ -307,9 +311,53 @@ class ManagerBot:
             except:
                 pass
 
-    def etapa_2(self):
-        """Procesa tabla: obtiene nombres e interactúa con menú de acciones"""
-        print("Iniciando etapa 2: Procesando clientes...")
+    def etapa_2(self) -> bool:
+        """
+        Procesa clientes según configuración guardada.
+        Lee 'venc_7dias' y 'venc_8dias' de config.json
+        """
+        from config_manager import load_config
+        config = load_config()
+        
+        dias_7 = config.get('venc_7dias', True)
+        dias_8 = config.get('venc_8dias', False)
+        
+        print(f"Iniciando etapa 2 (7 días: {dias_7}, 8-15 días: {dias_8})...")
+        
+        # Procesar 7 días
+        if dias_7:
+            print("\n=== PROCESANDO PRÓXIMOS 7 DÍAS ===")
+            if not self.selector_fecha_vencimiento_7dias():
+                print("✗ Error aplicando filtro de 7 días")
+                return False
+            if not self._procesar_tabla("notificaciones_7_dias.csv"):
+                return False
+        
+        # Procesar 8-15 días
+        if dias_8:
+            print("\n=== PROCESANDO 8 A 15 DÍAS ===")
+            if not self.fecha_vencimiento_8dias():
+                print("✗ Error aplicando filtro de 8-15 días")
+                return False
+            if not self._procesar_tabla("notificaciones_8_dias.csv"):
+                return False
+        
+        print("\n✓ Etapa 2 completada")
+        return True
+    
+    def _procesar_tabla(self, archivo_csv: str) -> bool:
+        """
+        Procesa la tabla actual, envía notificaciones y guarda resultados.
+        
+        Args:
+            archivo_csv: Nombre del archivo (ej: 'notificaciones_7_dias.csv')
+        
+        Returns:
+            bool: True si se procesó correctamente
+        """
+        import csv
+        import os
+        
         try:
             # Esperar a que cargue la tabla
             self.page.wait_for_selector("tr.sc-grid__table__row", timeout=15000)
@@ -318,7 +366,7 @@ class ManagerBot:
             row_count = self.page.locator("tr.sc-grid__table__row").count()
             print(f"Total de clientes encontrados: {row_count}")
             
-            clientes = []
+            resultados = []
             
             for i in range(row_count):
                 # Obtener la fila actual
@@ -326,43 +374,62 @@ class ManagerBot:
                 
                 # Extraer nombre del cliente
                 name_locator = row.locator("td[id^='name-and-taxid-column'] span.font-weight-bold").first
-                client_name = name_locator.inner_text()
-                clientes.append(client_name.strip())
-                print(f"{i+1}. Cliente: {client_name.strip()}")
+                client_name = name_locator.inner_text().strip()
+                print(f"{i+1}. Cliente: {client_name}")
                 
                 # Hacer clic en botón de acciones (tres puntos)
                 action_btn = row.locator("button.cell__dot-button").first
                 action_btn.click(force=True)
-                print(f"   → Menú abierto para {client_name.strip()}")
+                self.page.wait_for_timeout(500)
+                print(f"   → Menú abierto para {client_name}")
                 
-                # Llamar a _compartir con flujo de email
-                self._compartir(correo=True, whapp=True)
+                # Llamar a _compartir (lee config automáticamente) y rastrear individualmente
+                resultado = self._compartir()
+                
+                resultados.append({
+                    'cliente': client_name,
+                    'notificacion_whatsapp': '✓ enviado' if resultado['whapp'] else '✗ no enviado',
+                    'notificacion_correo': '✓ enviado' if resultado['correo'] else '✗ no enviado'
+                })
                 
                 # Cerrar menú contextual después de compartir
-                self.page.wait_for_timeout(500)
                 self.page.keyboard.press("Escape")
                 self.page.wait_for_timeout(500)
             
-            print(f"✓ Etapa 2 completada - {len(clientes)} clientes procesados")
+            # Guardar CSV
+            report_dir = "reports"
+            os.makedirs(report_dir, exist_ok=True)
+            filepath = f"{report_dir}/{archivo_csv}"
+            
+            with open(filepath, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.DictWriter(f, fieldnames=['cliente', 'notificacion_whatsapp', 'notificacion_correo'])
+                writer.writeheader()
+                writer.writerows(resultados)
+            
+            print(f"✓ Reporte guardado: {filepath}")
+            print(f"  Total procesados: {len(resultados)}")
+            
             return True
             
         except Exception as e:
-            print(f"Error en etapa 2: {e}")
+            print(f"Error procesando tabla: {e}")
             import traceback
             traceback.print_exc()
             return False
 
-    def _compartir(self, correo: bool = True, whapp: bool = True) -> bool:
+    def _compartir(self) -> dict:
         """
-        Compartir información del cliente via Email o WhatsApp.
-        
-        Args:
-            correo: Si True, ejecuta flujo de email (Previsualizar → Enviar → Cerrar)
-            whapp: Si True, ejecuta flujo de WhatsApp
-        
-        Returns:
-            bool: True si la operación fue exitosa
+        Compartir según configuración guardada.
+        Lee 'notif_correo' y 'notif_whapp' de config.json
         """
+        from config_manager import load_config
+        config = load_config()
+        
+        correo = config.get('notif_correo', True)
+        whapp = config.get('notif_whapp', True)
+        
+        result = {'correo': False, 'whapp': False}
+        
         print("Iniciando proceso de compartir...")
         try:
             # Paso 1: Click en "Compartir" en el menú contextual
@@ -376,132 +443,97 @@ class ManagerBot:
             # Paso 2: Flujo de Email (si correo=True)
             if correo:
                 print("Flujo de Email...")
-                
-                # Click en "Previsualizar Email"
-                preview_btn = self.page.locator("button.sc-button--secondary", has_text="Previsualizar Email")
-                preview_btn.wait_for(state="visible", timeout=5000)
-                preview_btn.click()
-                print("✓ Previsualizar Email clickeado")
-                self.page.wait_for_timeout(1500)
-                
-                # Click en "Enviar Email"
-                send_btn = self.page.locator("button.sc-button--primary", has_text="Enviar Email")
-                send_btn.wait_for(state="visible", timeout=5000)
-                send_btn.click()
-                print("✓ Enviar Email clickeado")
-                self.page.wait_for_timeout(1500)
-                
-                # Esperar mensaje de éxito
-                print("Esperando confirmación de envío...")
-                success_msg = self.page.locator("p:text('La información de pago se envió con éxito.')")
-                success_msg.wait_for(state="visible", timeout=10000)
-                print("✓ Email enviado con éxito")
-                
-                self.page.wait_for_timeout(1000)
-                
-                # Click en "Cerrar" - vuelve al submenú Compartir
-                cerrar_btn = self.page.locator("button.sc-button--primary", has_text="Cerrar")
-                cerrar_btn.wait_for(state="visible", timeout=5000)
-                cerrar_btn.click()
-                print("✓ Cerrar clickeado - en submenú Compartir")
-                self.page.wait_for_timeout(1000)
+                try:
+                    # Click en "Previsualizar Email"
+                    preview_btn = self.page.locator("button.sc-button--secondary", has_text="Previsualizar Email")
+                    preview_btn.wait_for(state="visible", timeout=5000)
+                    preview_btn.click()
+                    print("✓ Previsualizar Email clickeado")
+                    self.page.wait_for_timeout(1500)
+                    
+                    # Click en "Enviar Email"
+                    send_btn = self.page.locator("button.sc-button--primary", has_text="Enviar Email")
+                    send_btn.wait_for(state="visible", timeout=5000)
+                    send_btn.click()
+                    print("✓ Enviar Email clickeado")
+                    self.page.wait_for_timeout(1500)
+                    
+                    # Esperar mensaje de éxito
+                    print("Esperando confirmación de envío...")
+                    success_msg = self.page.locator("p:text('La información de pago se envió con éxito.')")
+                    success_msg.wait_for(state="visible", timeout=10000)
+                    print("✓ Email enviado con éxito")
+                    result['correo'] = True
+                    
+                    self.page.wait_for_timeout(1000)
+                    
+                    # Click en "Cerrar" - vuelve al submenú Compartir
+                    cerrar_btn = self.page.locator("button.sc-button--primary", has_text="Cerrar")
+                    cerrar_btn.wait_for(state="visible", timeout=5000)
+                    cerrar_btn.click()
+                    print("✓ Cerrar clickeado - en submenú Compartir")
+                    self.page.wait_for_timeout(1000)
+                    
+                except Exception as e:
+                    print(f"✗ Error en flujo Email: {e}")
             
             # Paso 3: Flujo de WhatsApp (si whapp=True)
             if whapp:
-                print("Flujo de WhatsApp - Abriendo WhatsApp Web...")
+                print("Flujo de WhatsApp - Capturando URL del sistema...")
                 try:
-                    from bot.browser_manager import (
-                        load_whatsapp_session, 
-                        save_whatsapp_session,
-                        load_brave_whatsapp_cookies,
-                        convert_brave_cookies_to_playwright
-                    )
+                    from bot.whatsapp_manager import WhatsAppManager
                     
-                    # Click en "Enviar por WhatsApp" - se abre api.whatsapp.com
-                    with self.page.context.expect_page(timeout=5000) as new_page_info:
+                    # 1. Hacer clic en "Enviar por WhatsApp" (abre api.whatsapp.com)
+                    with self.page.context.expect_page(timeout=5000) as popup_info:
                         self.page.get_by_role("button", name="Enviar por WhatsApp").click()
                     
-                    api_page = new_page_info.value
+                    api_page = popup_info.value
                     api_page.wait_for_load_state("domcontentloaded")
+                    print(f"✓ API WhatsApp abierto: {api_page.url[:60]}...")
                     
-                    # Obtener URL de api.whatsapp.com
-                    api_url = api_page.url
-                    print(f"✓ API WhatsApp abierto: {api_url[:60]}...")
-                    
-                    # Cerrar api.whatsapp.com (no lo queremos)
-                    api_page.close()
-                    print("✓ Página api.whatsapp.com cerrada")
-                    
-                    # Construir URL de WhatsApp Web reemplazando el dominio
-                    wa_url = api_url.replace("api.whatsapp.com", "web.whatsapp.com")
-                    print(f"Abriendo WhatsApp Web: {wa_url[:60]}...")
-                    
-                    # Abrir WhatsApp Web en nueva pestaña
-                    whatsapp_page = self.page.context.new_page()
-                    
-                    # 1. Verificar sesión guardada
-                    session_file = "session/whatsapp_session.json"
-                    session_loaded = load_whatsapp_session(whatsapp_page.context, session_file)
-                    
-                    # 2. Si no hay sesión, intentar cargar cookies de Brave
-                    if not session_loaded:
-                        print("No hay sesión guardada, verificando cookies de Brave...")
-                        brave_cookies = load_brave_whatsapp_cookies()
-                        if brave_cookies:
-                            playwright_cookies = convert_brave_cookies_to_playwright(brave_cookies)
-                            whatsapp_page.context.add_cookies(playwright_cookies)
-                            print("✓ Cookies de Brave cargadas en WhatsApp Web")
-                    
-                    whatsapp_page.goto(wa_url, wait_until="domcontentloaded", timeout=30000)
-                    print("✓ WhatsApp Web abierto")
-                    
-                    # Verificar si pide QR o ya está logueado
+                    # 2. Capturar href del link "Continuar en WhatsApp Web"
                     try:
-                        # Esperar input del chat (ya logueado)
-                        whatsapp_page.wait_for_selector("div[contenteditable='true']", timeout=10000)
-                        print("✓ WhatsApp Web listo (ya logueado)")
+                        wa_link = api_page.get_by_role("link", name="Continuar en WhatsApp Web").first
+                        wa_href = wa_link.get_attribute("href")
+                        print(f"✓ URL capturada de 'Continuar en WhatsApp Web': {wa_href[:80]}...")
                         
-                    except:
-                        # Pide QR - esperar 50 segundos para escanear
-                        print("WhatsApp Web pide QR - Esperando 50 segundos para escanear...")
-                        print("Por favor, escanea el código QR con tu teléfono")
+                        # Cerrar api.whatsapp.com
+                        api_page.close()
+                        print("✓ Página api.whatsapp.com cerrada")
                         
-                        # Esperar a que aparezca el input después del QR (máximo 50s)
-                        try:
-                            whatsapp_page.wait_for_selector("div[contenteditable='true']", timeout=50000)
-                            print("✓ QR escaneado exitosamente - WhatsApp Web listo")
-                            
-                            # Guardar sesión para próximas ejecuciones
-                            save_whatsapp_session(whatsapp_page, session_file)
-                            
-                        except:
-                            print("No se pudo verificar el escaneo del QR")
-                            print("Continuando de todos modos...")
+                    except Exception as e:
+                        print(f"✗ No se encontró el link 'Continuar en WhatsApp Web': {e}")
+                        # Fallback: usar la URL de api.whatsapp.com y reemplazar
+                        wa_href = api_page.url.replace("api.whatsapp.com", "web.whatsapp.com")
+                        print(f"✓ Usando URL fallback: {wa_href[:80]}...")
+                        api_page.close()
                     
-                    # Enviar mensaje (Enter)
-                    try:
-                        whatsapp_page.keyboard.press("Enter")
-                        print("✓ Mensaje enviado por WhatsApp")
-                        whatsapp_page.wait_for_timeout(3000)
-                    except:
-                        print("No se pudo enviar el mensaje automáticamente")
+                    # 3. Usar WhatsAppManager con la URL capturada
+                    context = self.page.context
+                    manager = WhatsAppManager(context)
                     
-                    # Cerrar pestaña WhatsApp y volver
-                    whatsapp_page.close()
-                    self.page.bring_to_front()
+                    # Enviar mensaje usando la URL del sistema
+                    if manager.send_message(url=wa_href, timeout=50000):
+                        print("✓ Mensaje enviado por WhatsApp (URL del sistema)")
+                        result['whapp'] = True
+                    else:
+                        print("✗ No se pudo enviar mensaje por WhatsApp")
+                    
+                    # Cerrar manager (cierra página pero NO el contexto)
+                    manager.close()
                     
                 except Exception as e:
                     print(f"Error en flujo WhatsApp: {e}")
                     import traceback
                     traceback.print_exc()
             
-            return True
+            return result
             
         except Exception as e:
             print(f"Error en _compartir: {e}")
             import traceback
             traceback.print_exc()
-            return False
+            return result
 
     def etapa_4(self):
         print("Etapa 4 - Por implementar")

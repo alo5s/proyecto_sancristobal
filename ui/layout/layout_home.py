@@ -133,11 +133,11 @@ class HomeView(QWidget):
         quick_layout.setAlignment(Qt.AlignCenter)
         quick_layout.setSpacing(12)
 
-        btn_login = QPushButton("🔐  Cerrar Sesión")
-        btn_login.setObjectName("secondary")
-        btn_login.setFont(FONT_BTN)
-        btn_login.clicked.connect(self.logout_requested.emit)
-        quick_layout.addWidget(btn_login)
+        btn_exit = QPushButton("Salir")
+        btn_exit.setObjectName("secondary")
+        btn_exit.setFont(FONT_BTN)
+        btn_exit.clicked.connect(self._exit_app)
+        quick_layout.addWidget(btn_exit)
 
         btn_reportes = QPushButton("📊  Reportes")
         btn_reportes.setObjectName("secondary")
@@ -191,14 +191,28 @@ class HomeView(QWidget):
 
     def show_persona_no_encontrada(self, dni, poliza, asegurado):
         self.log(f"Persona no encontrada: DNI {dni}, Póliza {poliza}")
+    
+    def _exit_app(self):
+        """Cierra toda la aplicación"""
+        from PySide6.QtWidgets import QMessageBox
+        reply = QMessageBox.question(
+            self, "Salir",
+            "¿Estás seguro de salir del programa?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        if reply == QMessageBox.Yes:
+            from PySide6.QtWidgets import QApplication
+            QApplication.quit()
 
     def reload_custom_data(self):
         pass  # Implementar si es necesario
 
     def show_reportes(self):
-        from PySide6.QtWidgets import QMessageBox
-        QMessageBox.information(self, "Reportes", "Módulo de reportes en desarrollo")
-
+        from ui.dialogs.reportes_dialog import ReportesDialog
+        dialog = ReportesDialog(self)
+        dialog.exec()
+    
     def show_programacion(self):
-        from PySide6.QtWidgets import QMessageBox
-        QMessageBox.information(self, "Programación", "Módulo de programación en desarrollo")
+        from ui.dialogs.programacion_dialog import ProgramacionDialog
+        dialog = ProgramacionDialog(self)
+        dialog.exec()

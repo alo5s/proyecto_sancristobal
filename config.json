@@ -1,5 +1,15 @@
 {
     "username": "BROKERDE056455",
     "password": "Broker2024.$",
-    "login_url": "https://productores.sancristobal.com.ar"
+    "login_url": "https://productores.sancristobal.com.ar",
+    "headless": false,
+    "schedule": {
+        "enabled": false,
+        "days": [],
+        "time": "08:00"
+    },
+    "notif_correo": true,
+    "notif_whapp": true,
+    "venc_7dias": true,
+    "venc_8dias": true
 }

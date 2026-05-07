@@ -144,7 +144,9 @@ class AppMainWindow(QMainWindow):
         QMessageBox.information(self, "Modo compacto", "Función en desarrollo")
 
     def show_config(self):
-        QMessageBox.information(self, "Configuración", "Diálogo de configuración en desarrollo")
+        from ui.dialogs.schedule_dialog import ScheduleDialog
+        dialog = ScheduleDialog(self)
+        dialog.exec()
 
     def show_documentation(self):
         QMessageBox.information(self, "Documentación", "Documentación disponible en: https://github.com/usuario/autobot")
