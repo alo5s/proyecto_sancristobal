@@ -21,7 +21,7 @@ ERROR     = "#e05c5c"
 SUCCESS   = "#4ecb8d"
 
 # ── Fuentes ────────────────────────────────────
-FONT_MENU   = QFont("Courier New", 11)
+FONT_MENU   = QFont("Arial", 12)
 
 
 class AppMainWindow(QMainWindow):
@@ -82,41 +82,36 @@ class AppMainWindow(QMainWindow):
             QMainWindow {{
                 background-color: {BG};
             }}
-
+            
             QMenuBar {{
                 background-color: {BG};
                 border-bottom: 1px solid {BORDER};
                 padding: 2px;
             }}
-
+            
             QMenuBar::item {{
                 padding: 4px 10px;
                 border-radius: 4px;
                 color: {MUTED};
-                font-size: 11px;
+                font-size: 12px;
             }}
-
-            QMenuBar::item:selected {{
-                background-color: {PANEL};
-                color: {TEXT};
-            }}
-
+            
             QMenu {{
                 background-color: {PANEL};
                 border: 1px solid {BORDER};
                 padding: 4px;
             }}
-
+            
             QMenu::item {{
                 padding: 6px 20px;
                 color: {TEXT};
-                font-size: 11px;
+                font-size: 12px;
             }}
-
+            
             QMenu::item:selected {{
                 background-color: {BORDER};
             }}
-
+            
             QMenu::separator {{
                 height: 1px;
                 background-color: {BORDER};
@@ -161,6 +156,7 @@ class AppMainWindow(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    app.setFont(QFont("Arial", 10))  # Default font for all widgets
     window = AppMainWindow()
     window.show()
     sys.exit(app.exec())

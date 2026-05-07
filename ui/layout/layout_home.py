@@ -23,10 +23,10 @@ ERROR     = "#e05c5c"
 SUCCESS   = "#4ecb8d"
 
 # ── Fuentes ────────────────────────────────────────
-FONT_TITLE  = QFont("Courier New", 16, QFont.Bold)
-FONT_BIGBTN = QFont("Courier New", 18, QFont.Bold)
-FONT_BTN    = QFont("Courier New", 12)
-FONT_TINY   = QFont("Courier New", 10)
+FONT_TITLE  = QFont("Arial", 18, QFont.Bold)
+FONT_BIGBTN = QFont("Arial", 20, QFont.Bold)
+FONT_BTN    = QFont("Arial", 14)
+FONT_TINY   = QFont("Arial", 11)
 
 
 class HomeView(QWidget):
@@ -50,7 +50,7 @@ class HomeView(QWidget):
             QWidget {{
                 background-color: {BG};
                 color: {TEXT};
-                font-family: "Courier New";
+                font-family: "Arial";
             }}
             QPushButton#primary {{
                 background-color: {ACCENT};
@@ -58,8 +58,8 @@ class HomeView(QWidget):
                 border-radius: 12px;
                 padding: 24px 80px;
                 color: {BG};
-                font-family: "Courier New";
-                font-size: 18px;
+                font-family: "Arial";
+                font-size: 20px;
                 font-weight: bold;
             }}
             QPushButton#primary:hover {{
@@ -74,19 +74,19 @@ class HomeView(QWidget):
                 border-radius: 8px;
                 padding: 10px 20px;
                 color: {TEXT};
-                font-size: 12px;
+                font-size: 14px;
             }}
             QPushButton#secondary:hover {{
                 background-color: {BORDER};
             }}
             QLabel#title {{
                 color: {TEXT};
-                font-size: 16px;
+                font-size: 18px;
                 font-weight: bold;
             }}
             QLabel#status {{
                 color: {MUTED};
-                font-size: 10px;
+                font-size: 11px;
             }}
         """)
 

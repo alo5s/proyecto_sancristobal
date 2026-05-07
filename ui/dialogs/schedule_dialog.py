@@ -69,7 +69,7 @@ class ScheduleDialog(QDialog):
         # Título
         title = QLabel("Configurar Auto-Inicio")
         title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet("font-size: 16px; font-weight: bold;")
+        title.setStyleSheet("font-size: 18px; font-weight: bold;")
         layout.addWidget(title)
         
         # Checkbox habilitar

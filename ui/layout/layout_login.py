@@ -23,19 +23,19 @@ ERROR     = "#e05c5c"
 SUCCESS   = "#4ecb8d"
 
 # ── Fuentes ────────────────────────────────────────────
-FONT_LOGO   = QFont("Courier New", 28)
-FONT_TITLE  = QFont("Courier New", 18, QFont.Bold)
-FONT_INPUT  = QFont("Courier New", 13)
-FONT_BTN    = QFont("Courier New", 13, QFont.Bold)
-FONT_TINY   = QFont("Courier New", 10)
-FONT_MENU   = QFont("Courier New", 11)
+FONT_LOGO   = QFont("Arial", 30)
+FONT_TITLE  = QFont("Arial", 20, QFont.Bold)
+FONT_INPUT  = QFont("Arial", 14)
+FONT_BTN    = QFont("Arial", 14, QFont.Bold)
+FONT_TINY   = QFont("Arial", 11)
+FONT_MENU   = QFont("Arial", 12)
 
 # ── QSS Estilos ────────────────────────────────────────────
 QSS = f"""
 QWidget {{
     background-color: {BG};
     color: {TEXT};
-    font-family: "Courier New";
+    font-family: "Arial";
 }}
 
 QLineEdit {{
@@ -44,7 +44,7 @@ QLineEdit {{
     border-radius: 8px;
     padding: 10px 12px;
     color: {TEXT};
-    font-size: 13px;
+    font-size: 14px;
 }}
 
 QLineEdit:focus {{
@@ -61,8 +61,8 @@ QPushButton#primary {{
     border-radius: 8px;
     padding: 12px 24px;
     color: {BG};
-    font-family: "Courier New";
-    font-size: 13px;
+    font-family: "Arial";
+    font-size: 14px;
     font-weight: bold;
 }}
 
@@ -81,31 +81,31 @@ QPushButton#primary:disabled {{
 
 QLabel#logo {{
     color: {ACCENT};
-    font-size: 28px;
+    font-size: 30px;
 }}
 
 QLabel#title {{
     color: {TEXT};
-    font-size: 18px;
+    font-size: 20px;
     font-weight: bold;
 }}
 
 QLabel#subtitle {{
     color: {MUTED};
-    font-size: 10px;
+    font-size: 11px;
 }}
 
 QLabel#status {{
     color: {MUTED};
-    font-size: 10px;
+    font-size: 11px;
 }}
 
 QPushButton#togglePass {{
     background-color: transparent;
     border: none;
     color: {ACCENT};
-    font-family: "Courier New";
-    font-size: 10px;
+    font-family: "Arial";
+    font-size: 11px;
     text-align: center;
     padding: 4px 0px;
 }}
@@ -223,9 +223,9 @@ class LoginView(QWidget):
         self.lbl_status.setText(msg)
         # Solo cambiar color temporalmente, sin romper QSS
         if color == ERROR:
-            self.lbl_status.setStyleSheet(f"color: {ERROR}; font-family: Courier New; font-size: 10px;")
+            self.lbl_status.setStyleSheet(f"color: {ERROR}; font-family: Arial; font-size: 11px;")
         elif color == SUCCESS:
-            self.lbl_status.setStyleSheet(f"color: {SUCCESS}; font-family: Courier New; font-size: 10px;")
+            self.lbl_status.setStyleSheet(f"color: {SUCCESS}; font-family: Arial; font-size: 11px;")
         else:
             # MUTED - usar QSS por defecto
             self.lbl_status.setStyleSheet("")
