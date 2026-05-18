@@ -1,0 +1,14 @@
+# Bytecode de Python
+__pycache__/
+*.pyc
+
+# Sesión del navegador (runtime)
+session/
+session.json
+
+# Debug screenshots
+debug_filtros.png
+debug_*.png
+
+# Reportes generados
+reports/
