@@ -28,7 +28,7 @@ class ProgramacionDialog(QDialog):
         layout.addWidget(title)
 
         # ========== SECCIÓN 1: NOTIFICACIONES ==========
-        notif_group = QGroupBox("Notificaciones (_compartir)")
+        notif_group = QGroupBox("Notificaciones")
         notif_layout = QVBoxLayout(notif_group)
 
         self.correo_check = QCheckBox("Enviar Correo")
@@ -42,7 +42,7 @@ class ProgramacionDialog(QDialog):
         layout.addWidget(notif_group)
 
         # ========== SECCIÓN 2: VENCIMIENTOS ==========
-        venc_group = QGroupBox("Vencimientos (etapa_2)")
+        venc_group = QGroupBox("Vencimientos")
         venc_layout = QVBoxLayout(venc_group)
 
         self.dias_7_check = QCheckBox("Procesar 7 días")
@@ -56,7 +56,7 @@ class ProgramacionDialog(QDialog):
         layout.addWidget(venc_group)
 
         # ========== SECCIÓN 3: MODALIDADES DE PAGO ==========
-        mod_group = QGroupBox("Modalidades de pago (etapa_1)")
+        mod_group = QGroupBox("Modalidades de pago")
         mod_layout = QVBoxLayout(mod_group)
 
         MODALIDADES = ["EFECTIVO", "DÉBITO DIRECTO", "TARJETA DE CRÉDITO"]
