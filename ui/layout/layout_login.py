@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 
-from config_manager import load_config, save_config
+from config_manager import get_settings
 
 # ── Paleta de colores (fondo claro) ──────────────────────────
 BG        = "#f0f0f0"
@@ -121,7 +121,6 @@ class LoginView(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.config_data = load_config()
         self._build_ui()
 
     def _build_ui(self):
@@ -152,7 +151,7 @@ class LoginView(QWidget):
         self.entry_user = QLineEdit()
         self.entry_user.setPlaceholderText("usuario")
         self.entry_user.setFont(FONT_INPUT)
-        self.entry_user.setText(self.config_data.get("username", ""))
+        self.entry_user.setText(get_settings().value("username", ""))
         layout.addWidget(self.entry_user)
 
         # Contraseña
@@ -160,7 +159,7 @@ class LoginView(QWidget):
         self.entry_pass.setPlaceholderText("contraseña")
         self.entry_pass.setEchoMode(QLineEdit.Password)
         self.entry_pass.setFont(FONT_INPUT)
-        self.entry_pass.setText(self.config_data.get("password", ""))
+        self.entry_pass.setText(get_settings().value("password", ""))
         layout.addWidget(self.entry_pass)
 
         # Texto para mostrar/ocultar contraseña
@@ -209,10 +208,10 @@ class LoginView(QWidget):
             self._set_status("completá los campos", ERROR)
             return
 
-        # Guardar credenciales en config
-        self.config_data["username"] = user
-        self.config_data["password"] = pwd
-        save_config(self.config_data)
+        s = get_settings()
+        s.setValue("username", user)
+        s.setValue("password", pwd)
+        s.sync()
 
         self.btn_login.setEnabled(False)
         self.btn_login.setText("conectando...")

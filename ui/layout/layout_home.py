@@ -8,8 +8,6 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal, QTimer
 from PySide6.QtGui import QFont
 
-from config_manager import load_config, save_config
-from bot.browser_manager import BrowserManager
 
 # ── Paleta de colores (fondo claro) ──────────────────────────────
 BG        = "#f0f0f0"
@@ -40,7 +38,6 @@ class HomeView(QWidget):
         super().__init__()
         self.user = user
         self.is_compact = False
-        self.config_data = load_config()
         self.logs = []
         self._build_ui()
 
@@ -187,6 +184,8 @@ class HomeView(QWidget):
         self.btn_ejecutar.setText("▶  EJECUTAR COBRANZA")
 
     def show_poliza_alert(self, msg):
+        from PySide6.QtWidgets import QMessageBox
+        QMessageBox.information(self, "Finalizado", msg)
         self.log(msg)
 
     def show_persona_no_encontrada(self, dni, poliza, asegurado):

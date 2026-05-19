@@ -30,6 +30,7 @@ def detectar_navegador():
             ("chrome",            "google-chrome"),
             ("msedge",            "microsoft-edge"),
             ("brave",             "brave-browser"),
+            ("brave",             "brave-origin-nightly"),
             ("brave",             "brave"),
             ("chromium",          "chromium"),
             ("chromium-browser",  "chromium-browser"),
@@ -240,6 +241,21 @@ class BrowserManager:
     # ----------------------------------------------------------
     def get_page(self):
         return self.page
+
+    # ----------------------------------------------------------
+    # MINIMIZAR VENTANA
+    # ----------------------------------------------------------
+    def minimize_window(self):
+        try:
+            cdp = self.page.context.new_cdp_session(self.page)
+            result = cdp.send("Browser.getWindowForTarget")
+            cdp.send("Browser.setWindowBounds", {
+                "windowId": result["windowId"],
+                "bounds": {"windowState": "minimized"}
+            })
+            print("[INFO] Ventana del navegador minimizada")
+        except Exception as e:
+            print(f"[INFO] No se pudo minimizar ventana: {e}")
 
     # ----------------------------------------------------------
     # CERRAR NAVEGADOR

@@ -1,15 +1,19 @@
 {
-    "username": "BROKERDE056455",
-    "password": "Broker2024.$",
-    "login_url": "https://productores.sancristobal.com.ar",
-    "headless": false,
-    "schedule": {
-        "enabled": false,
-        "days": [],
-        "time": "08:00"
-    },
-    "notif_correo": true,
-    "notif_whapp": true,
-    "venc_7dias": true,
-    "venc_8dias": true
+  "username": "BROKERDE056455",
+  "password": "DF674_@88Mme.tY",
+  "login_url": "https://productores.sancristobal.com.ar",
+  "headless": false,
+  "schedule": {
+    "enabled": false,
+    "days": [],
+    "time": "08:00"
+  },
+  "notif_correo": true,
+  "notif_whapp": true,
+  "venc_7dias": true,
+  "venc_8dias": true,
+  "modalidades_pago": [
+    "EFECTIVO",
+    "D\u00c9BITO DIRECTO"
+  ]
 }

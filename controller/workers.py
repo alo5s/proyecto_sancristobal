@@ -99,7 +99,7 @@ class SessionWorker(QThread):
         if action == "login":
             from bot.browser_manager import BrowserManager
             from bot.paginas.login_manager import ManagerSession
-            from config_manager import load_config
+            from config_manager import get_settings
 
             if self.logged:
                 return
@@ -108,9 +108,7 @@ class SessionWorker(QThread):
             # Emitir progreso
             self.automation_ok.emit("🔄 Iniciando navegador...")
 
-            # Obtener URL de config
-            config = load_config()
-            login_url = config.get("login_url", "https://productores.sancristobal.com.ar")
+            login_url = get_settings().value("login_url", "https://productores.sancristobal.com.ar")
 
             try:
                 if not self.browser:
@@ -138,6 +136,7 @@ class SessionWorker(QThread):
 
             if success:
                 self.logged = True
+                self.browser.minimize_window()
                 self.login_ok.emit(user)
             else:
                 self.logged = False
@@ -226,8 +225,9 @@ class SessionWorker(QThread):
         # ---------- ETAPA 2 ----------
         elif self.current_stage == 2:
             if self.bot.etapa_2():
-                self.current_stage = 3
-                self.automation_ok.emit("✅ Etapa 2 completada")
+                self.bot.navegar_a_inicio()
+                self.poliza_terminada.emit("✅ El bot ha finalizado")
+                self._reset_bot("✅ Bot finalizado")
             else:
                 self._fail("Error en Etapa 2")
 
@@ -315,17 +315,24 @@ class SessionWorker(QThread):
     def _fail(self, msg):
         import traceback
 
-        # Error técnico completo
         error_detalle = traceback.format_exc()
 
-        # Log completo
         print("❌ ERROR CRÍTICO:")
         print(error_detalle)
 
-        # Emitimos SOLO el detalle técnico al log
         self.automation_error.emit(error_detalle)
 
         self._detener()
+
+        try:
+            if self.browser:
+                self.browser.close()
+        except:
+            pass
+        self.browser = None
+        self.session = None
+        self.logged = False
+        self.error.emit(f"Error crítico: {msg} — Navegador cerrado")
 
     def _detener(self):
         self.state = BotState.IDLE

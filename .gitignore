@@ -1,14 +1,32 @@
 # Bytecode de Python
 __pycache__/
 *.pyc
+*.pyo
+
+# Virtual environment
+env/
 
 # Sesión del navegador (runtime)
 session/
 session.json
 
 # Debug screenshots
-debug_filtros.png
 debug_*.png
 
 # Reportes generados
 reports/
+
+# Config con credenciales — NUNCA subir a GitHub
+config.json
+
+# IDEs / SO
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

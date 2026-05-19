@@ -167,6 +167,12 @@ class ManagerBot:
         """Detiene la automatización"""
         print("Automatización detenida")
 
+    def navegar_a_inicio(self):
+        """Navega a la página de inicio del portal"""
+        print("Navegando a inicio...")
+        self.page.goto("https://productores.sancristobal.com.ar/inicio")
+        self.page.wait_for_load_state("domcontentloaded", timeout=15000)
+
     def selector_fecha_vencimiento_7dias(self):
         """Selecciona 'Próximos 7 días' en el dropdown de Vencimiento"""
         print("Seleccionando Próximos 7 días...")
@@ -218,83 +224,70 @@ class ManagerBot:
             close_tour_popup(self.page)
 
             # Aplicar filtros
-            self._aplicar_filtros_efectivo()
+            self._aplicar_filtros()
             return True
         except Exception as e:
             print(f"Error en etapa 1: {e}")
             return False
 
-    def _aplicar_filtros_efectivo(self):
-        """Hace clic en Filtros, busca el input de modalidad, escribe EFECTIVO y aplica"""
+    def _aplicar_filtros(self):
+        """Hace clic en Filtros, selecciona las modalidades configuradas y aplica"""
+        from config_manager import get_settings
+        modalidades = get_settings().value("modalidades_pago", [], type=list)
+
+        if not modalidades:
+            print("Aviso: No hay modalidades de pago configuradas en config.json (modalidades_pago)")
+            return
+
         try:
-            # 1. Hacer clic en "Filtros" (usar .first para evitar múltiples)
-            print("Abriendo filtros...")
+            print(f"Abriendo filtros para: {', '.join(modalidades)}...")
             filtros_btn = self.page.locator("#filtros-gestion-cobranzas").first
             filtros_btn.wait_for(state="visible", timeout=10000)
             filtros_btn.click()
             print("✓ Botón Filtros clickeado")
 
-            # Esperar a que aparezca el panel de filtros
             self.page.wait_for_timeout(1500)
 
-            # 2. Buscar el input DENTRO del ng-select de modalidad
-            # El HTML muestra un ng-select con placeholder "Elegí las modalidades de pago a filtrar"
             print("Buscando input de modalidad de pago...")
-
-            # Opción A: Buscar por el atributo formcontrolname
             input_filtro = self.page.locator("input[formcontrolname='paymentMethods']").first
-
-            # Si no funciona, buscar por el placeholder
             if not input_filtro.is_visible(timeout=2000):
                 input_filtro = self.page.locator("ng-select[formcontrolname='paymentMethods'] input").first
 
-            input_filtro.click()
-            print("✓ Input de modalidad clickeado")
+            for i, modalidad in enumerate(modalidades):
+                if i > 0:
+                    self.page.wait_for_timeout(500)
 
-            # 3. Escribir "EFECTIVO" (limpiar primero)
-            input_filtro.fill("")
-            input_filtro.fill("EFECTIVO")
-            print("Escribiendo EFECTIVO...")
+                input_filtro.click()
+                input_filtro.fill("")
+                input_filtro.fill(modalidad)
+                print(f"Escribiendo {modalidad}...")
 
-            # Esperar a que aparezca el desplegable
-            self.page.wait_for_timeout(1500)
+                self.page.wait_for_timeout(1500)
 
-            # 4. Seleccionar "EFECTIVO" del panel de opciones (ng-dropdown-panel)
-            print("Seleccionando EFECTIVO...")
-            # Buscar en el panel desplegable que abre ng-select
-            #efectivo_option = self.page.locator("div.ng-dropdown-panel").locator("div.ng-option", has_text="EFECTIVO").first
-            efectivo_option = self.page.locator("ng-dropdown-panel .ng-option").filter(has_text="EFECTIVO").first
-            efectivo_option.wait_for(state="visible", timeout=5000)
-            efectivo_option.click()
-            print("✓ EFECTIVO seleccionado")
+                option = self.page.locator("ng-dropdown-panel .ng-option").filter(has_text=modalidad).first
+                option.wait_for(state="visible", timeout=5000)
+                option.click()
+                print(f"✓ {modalidad} seleccionado")
 
-            # 5. Hacer clic en "Aplicar"
             self.page.wait_for_timeout(800)
             aplicar_btn = self.page.locator("#aplicar-filtros-gestion-cobranzas").first
             aplicar_btn.wait_for(state="visible", timeout=5000)
             aplicar_btn.click()
             print("✓ Filtros aplicados")
 
-            # Esperar a que se apliquen los filtros y el panel se cierre
             self.page.wait_for_timeout(2000)
-            
-            # 6. Manejar paginación - Seleccionar "100" items por página
+
             print("Configurando paginación a 100...")
             try:
-                # Buscar el input de paginación
-                # 2. Esperar dropdown
                 select_container = self.page.locator("#pageItem__input").locator("..")
                 select_container.click(force=True)
-                # 2. Esperar dropdown
                 dropdown_items = self.page.locator(".sc-select__item:visible")
                 dropdown_items.first.wait_for(timeout=5000)
-                
                 self.page.locator(".sc-select__item:visible", has_text="100").first.click(force=True)
                 print("✓ Paginación configurada a 100 items")
             except Exception as e:
                 print(f"Aviso: No se pudo configurar paginación: {e}")
-            
-            # Verificar que el panel de filtros se cerró
+
             try:
                 filtros_panel = self.page.locator("#filtros-gestion-cobranzas").first
                 filtros_panel.wait_for(state="hidden", timeout=5000)
@@ -304,23 +297,22 @@ class ManagerBot:
 
         except Exception as e:
             print(f"Error aplicando filtros: {e}")
-            # Debug: tomar captura de pantalla
             try:
                 self.page.screenshot(path="debug_filtros.png")
                 print("Screenshot guardado: debug_filtros.png")
             except:
                 pass
 
+
     def etapa_2(self) -> bool:
         """
         Procesa clientes según configuración guardada.
         Lee 'venc_7dias' y 'venc_8dias' de config.json
         """
-        from config_manager import load_config
-        config = load_config()
-        
-        dias_7 = config.get('venc_7dias', True)
-        dias_8 = config.get('venc_8dias', False)
+        from config_manager import get_settings
+        s = get_settings()
+        dias_7 = s.value("venc_7dias", True, type=bool)
+        dias_8 = s.value("venc_8dias", False, type=bool)
         
         print(f"Iniciando etapa 2 (7 días: {dias_7}, 8-15 días: {dias_8})...")
         
@@ -357,52 +349,70 @@ class ManagerBot:
         """
         import csv
         import os
-        
+
         try:
-            # Esperar a que cargue la tabla
             self.page.wait_for_selector("tr.sc-grid__table__row", timeout=15000)
-            
-            # Contar filas
+
             row_count = self.page.locator("tr.sc-grid__table__row").count()
             print(f"Total de clientes encontrados: {row_count}")
-            
+
             resultados = []
-            
+
             for i in range(row_count):
-                # Obtener la fila actual
                 row = self.page.locator("tr.sc-grid__table__row").nth(i)
-                
-                # Extraer nombre del cliente
+
                 name_locator = row.locator("td[id^='name-and-taxid-column'] span.font-weight-bold").first
                 client_name = name_locator.inner_text().strip()
                 print(f"{i+1}. Cliente: {client_name}")
-                
-                # Hacer clic en botón de acciones (tres puntos)
+
+                pay_locator = row.locator("td[id^='payment-method-column'] span.font-weight-bold").first
+                pay_text = pay_locator.inner_text().strip().upper()
+                if "EFECTIVO" in pay_text:
+                    pago = "EFECTIVO"
+                elif "DÉBITO" in pay_text:
+                    pago = "DÉBITO DIRECTO"
+                elif "TARJETA" in pay_text:
+                    pago = "TARJETA DE CRÉDITO"
+                else:
+                    pago = ""
+
+                efectivo = "✓" if pago == "EFECTIVO" else "✗"
+                debito   = "✓" if pago == "DÉBITO DIRECTO" else "✗"
+                tarjeta  = "✓" if pago == "TARJETA DE CRÉDITO" else "✗"
+
                 action_btn = row.locator("button.cell__dot-button").first
                 action_btn.click(force=True)
                 self.page.wait_for_timeout(500)
                 print(f"   → Menú abierto para {client_name}")
-                
-                # Llamar a _compartir (lee config automáticamente) y rastrear individualmente
+
                 resultado = self._compartir()
-                
+
                 resultados.append({
                     'cliente': client_name,
                     'notificacion_whatsapp': '✓ enviado' if resultado['whapp'] else '✗ no enviado',
-                    'notificacion_correo': '✓ enviado' if resultado['correo'] else '✗ no enviado'
+                    'notificacion_correo': '✓ enviado' if resultado['correo'] else '✗ no enviado',
+                    'EFECTIVO': efectivo,
+                    'DÉBITO DIRECTO': debito,
+                    'TARJETA DE CRÉDITO': tarjeta,
                 })
-                
-                # Cerrar menú contextual después de compartir
+
                 self.page.keyboard.press("Escape")
                 self.page.wait_for_timeout(500)
-            
-            # Guardar CSV
+
+            from datetime import datetime
+
             report_dir = "reports"
             os.makedirs(report_dir, exist_ok=True)
-            filepath = f"{report_dir}/{archivo_csv}"
-            
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            name, ext = os.path.splitext(archivo_csv)
+            filepath = f"{report_dir}/{name}_{timestamp}{ext}"
+
+            fieldnames = [
+                'cliente', 'notificacion_whatsapp', 'notificacion_correo',
+                'EFECTIVO', 'DÉBITO DIRECTO', 'TARJETA DE CRÉDITO'
+            ]
             with open(filepath, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=['cliente', 'notificacion_whatsapp', 'notificacion_correo'])
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
                 writer.writeheader()
                 writer.writerows(resultados)
             
@@ -422,11 +432,10 @@ class ManagerBot:
         Compartir según configuración guardada.
         Lee 'notif_correo' y 'notif_whapp' de config.json
         """
-        from config_manager import load_config
-        config = load_config()
-        
-        correo = config.get('notif_correo', True)
-        whapp = config.get('notif_whapp', True)
+        from config_manager import get_settings
+        s = get_settings()
+        correo = s.value("notif_correo", True, type=bool)
+        whapp = s.value("notif_whapp", True, type=bool)
         
         result = {'correo': False, 'whapp': False}
         

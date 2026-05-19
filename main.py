@@ -120,15 +120,17 @@ class AppMainWindow(QMainWindow):
         """
 
     def _get_browser_text(self):
-        from config_manager import load_config
-        config_data = load_config()
-        return "Mostrar navegador" if config_data.get("headless", True) else "Ocultar navegador"
+        from config_manager import get_settings
+        s = get_settings()
+        headless = s.value("headless", True, type=bool)
+        return "Mostrar navegador" if headless else "Ocultar navegador"
 
     def toggle_browser(self):
-        from config_manager import load_config, save_config
-        config_data = load_config()
-        config_data["headless"] = not config_data.get("headless", True)
-        save_config(config_data)
+        from config_manager import get_settings
+        s = get_settings()
+        headless = s.value("headless", True, type=bool)
+        s.setValue("headless", not headless)
+        s.sync()
         self.toggle_browser_action.setText(self._get_browser_text())
         QMessageBox.information(self, "Información", "Reiniciá la app para aplicar cambios")
 

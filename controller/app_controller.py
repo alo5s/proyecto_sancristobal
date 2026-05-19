@@ -64,7 +64,7 @@ class AppController:
         self.home.stop_requested.connect(self.worker.stop_automation)
 
         # 🔹 conectar señal poliza_terminada → mostrar alert
-        self.worker.poliza_terminada.connect(self.home.show_poliza_alert)
+        self.worker.poliza_terminada.connect(self.on_poliza_terminada)
 
         # Cambiar tamaño de ventana para Home (600x420)
         self.window.setFixedSize(600, 420)
@@ -119,6 +119,11 @@ class AppController:
             self.home.status_label.setText(msg)
             self.home.logs.append(msg)
 
+    def on_poliza_terminada(self, msg):
+        if hasattr(self, "home"):
+            self.home.show_poliza_alert(msg)
+            self.home.show_reportes()
+
     def on_automation_error(self, msg):
         if hasattr(self, "home"):
             self.home.show_bot_error(msg)
@@ -131,6 +136,7 @@ class AppController:
 
         self.login_view = LoginView()
         self.login_view.login_requested.connect(self.start_login)
+        self.window.setFixedSize(360, 420)
         self.window.setCentralWidget(self.login_view)
         self.login_view._set_status(msg, ERROR)
 

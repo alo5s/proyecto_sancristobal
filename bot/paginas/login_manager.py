@@ -2,7 +2,7 @@
 login_manager.py — Manejo de login y guardado de sesión
 """
 
-from config_manager import load_config
+from config_manager import get_settings
 from bot.browser_manager import BrowserManager
 from bot.paginas.bot_manager import close_tour_popup
 
@@ -17,12 +17,7 @@ class ManagerSession:
 
     def login(self, username, password):
         """Ejecuta login usando credenciales pasadas por parámetro"""
-        config = load_config()
-        login_url = config.get("login_url", "")
-
-        if not login_url:
-            print("ERROR: No se configuró login_url en config.json")
-            return False
+        login_url = get_settings().value("login_url", "https://productores.sancristobal.com.ar")
 
         try:
             # ✅ ASEGURAR QUE ESTAMOS EN LA PÁGINA DE LOGIN
