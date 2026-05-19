@@ -215,3 +215,12 @@ class HomeView(QWidget):
         from ui.dialogs.programacion_dialog import ProgramacionDialog
         dialog = ProgramacionDialog(self)
         dialog.exec()
+
+    def check_license_status(self):
+        from utils.license_manager import get_license_info
+        info = get_license_info()
+        if not info["is_valid"]:
+            self.btn_ejecutar.setEnabled(False)
+            self.log("⚠️ Licencia vencida — renovar en Licencias")
+        else:
+            self.btn_ejecutar.setEnabled(True)

@@ -66,6 +66,9 @@ class AppController:
         # 🔹 conectar señal poliza_terminada → mostrar alert
         self.worker.poliza_terminada.connect(self.on_poliza_terminada)
 
+        # Verificar licencia
+        self.home.check_license_status()
+
         # Cambiar tamaño de ventana para Home (600x420)
         self.window.setFixedSize(600, 420)
 

@@ -49,6 +49,10 @@ class AppMainWindow(QMainWindow):
         config_action.triggered.connect(self.show_config)
         menu.addAction(config_action)
 
+        licencia_action = QAction("Licencias", self)
+        licencia_action.triggered.connect(self.show_license)
+        menu.addAction(licencia_action)
+
         menu.addSeparator()
 
         # Grupo 2: Visualización
@@ -144,6 +148,13 @@ class AppMainWindow(QMainWindow):
         from ui.dialogs.schedule_dialog import ScheduleDialog
         dialog = ScheduleDialog(self)
         dialog.exec()
+
+    def show_license(self):
+        from ui.dialogs.license_dialog import LicenseDialog
+        dialog = LicenseDialog(self)
+        dialog.exec()
+        if hasattr(self.controller, "home") and hasattr(self.controller.home, "check_license_status"):
+            self.controller.home.check_license_status()
 
     def show_documentation(self):
         QMessageBox.information(self, "Documentación", "Documentación disponible en: https://github.com/usuario/autobot")

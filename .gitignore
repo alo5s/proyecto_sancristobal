@@ -10,6 +10,8 @@ env/
 session/
 session.json
 
+AGENTS.md
+
 # Debug screenshots
 debug_*.png
 
