@@ -111,7 +111,7 @@ class AppController:
 
         # si terminó / falló / se detuvo → reset UI
         if (
-            "finalizada" in msg
+            "finaliza" in msg
             or "detenida" in msg
             or msg.startswith("❌")
         ):

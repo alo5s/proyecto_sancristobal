@@ -29,7 +29,7 @@ class ReportesDialog(QDialog):
         layout.addWidget(title)
         
         # ========== SECCIÓN: LISTA DE REPORTES ==========
-        report_group = QGroupBox("Archivos CSV")
+        report_group = QGroupBox("Archivos Excel")
         report_layout = QVBoxLayout(report_group)
         
         self.report_list = QListWidget()
@@ -85,27 +85,27 @@ class ReportesDialog(QDialog):
         QDesktopServices.openUrl(QUrl.fromLocalFile(os.path.abspath("reports")))
 
     def _load_reports(self):
-        """Carga lista de reportes CSV"""
+        """Carga lista de reportes Excel"""
         reports_dir = Path("reports")
         if not reports_dir.exists():
             item = QListWidgetItem("No hay reportes generados")
             item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
             self.report_list.addItem(item)
             return
-        
-        csv_files = sorted(
-            reports_dir.glob("*.csv"),
+
+        xlsx_files = sorted(
+            reports_dir.glob("*.xlsx"),
             key=os.path.getmtime,
             reverse=True
         )
-        
-        if not csv_files:
+
+        if not xlsx_files:
             item = QListWidgetItem("No hay reportes generados")
             item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
             self.report_list.addItem(item)
             return
-        
-        for csv_file in csv_files:
-            item = QListWidgetItem(csv_file.name)
-            item.setData(Qt.UserRole, str(csv_file))
+
+        for xlsx_file in xlsx_files:
+            item = QListWidgetItem(xlsx_file.name)
+            item.setData(Qt.UserRole, str(xlsx_file))
             self.report_list.addItem(item)

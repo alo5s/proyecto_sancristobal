@@ -322,7 +322,7 @@ class ManagerBot:
             if not self.selector_fecha_vencimiento_7dias():
                 print("✗ Error aplicando filtro de 7 días")
                 return False
-            if not self._procesar_tabla("notificaciones_7_dias.csv"):
+            if not self._procesar_tabla("notificaciones_7_dias.xlsx"):
                 return False
         
         # Procesar 8-15 días
@@ -331,24 +331,26 @@ class ManagerBot:
             if not self.fecha_vencimiento_8dias():
                 print("✗ Error aplicando filtro de 8-15 días")
                 return False
-            if not self._procesar_tabla("notificaciones_8_dias.csv"):
+            if not self._procesar_tabla("notificaciones_8_dias.xlsx"):
                 return False
         
         print("\n✓ Etapa 2 completada")
         return True
     
-    def _procesar_tabla(self, archivo_csv: str) -> bool:
+    def _procesar_tabla(self, archivo: str) -> bool:
         """
-        Procesa la tabla actual, envía notificaciones y guarda resultados.
-        
+        Procesa la tabla actual, envía notificaciones y guarda resultados en .xlsx.
+
         Args:
-            archivo_csv: Nombre del archivo (ej: 'notificaciones_7_dias.csv')
-        
+            archivo: Nombre del archivo (ej: 'notificaciones_7_dias.xlsx')
+
         Returns:
             bool: True si se procesó correctamente
         """
-        import csv
         import os
+        from datetime import datetime
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment
 
         try:
             self.page.wait_for_selector("tr.sc-grid__table__row", timeout=15000)
@@ -377,8 +379,8 @@ class ManagerBot:
                     pago = ""
 
                 efectivo = "✓" if pago == "EFECTIVO" else "✗"
-                debito   = "✓" if pago == "DÉBITO DIRECTO" else "✗"
-                tarjeta  = "✓" if pago == "TARJETA DE CRÉDITO" else "✗"
+                debito = "✓" if pago == "DÉBITO DIRECTO" else "✗"
+                tarjeta = "✓" if pago == "TARJETA DE CRÉDITO" else "✗"
 
                 action_btn = row.locator("button.cell__dot-button").first
                 action_btn.click(force=True)
@@ -399,28 +401,44 @@ class ManagerBot:
                 self.page.keyboard.press("Escape")
                 self.page.wait_for_timeout(500)
 
-            from datetime import datetime
-
             report_dir = "reports"
             os.makedirs(report_dir, exist_ok=True)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            name, ext = os.path.splitext(archivo_csv)
-            filepath = f"{report_dir}/{name}_{timestamp}{ext}"
+            name, _ = os.path.splitext(archivo)
+            filepath = os.path.join(report_dir, f"{name}_{timestamp}.xlsx")
 
-            fieldnames = [
-                'cliente', 'notificacion_whatsapp', 'notificacion_correo',
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Notificaciones"
+
+            headers = [
+                'Cliente', 'WhatsApp', 'Correo',
                 'EFECTIVO', 'DÉBITO DIRECTO', 'TARJETA DE CRÉDITO'
             ]
-            with open(filepath, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
-                writer.writeheader()
-                writer.writerows(resultados)
-            
+            bold_font = Font(bold=True)
+            for col, header in enumerate(headers, 1):
+                cell = ws.cell(row=1, column=col, value=header)
+                cell.font = bold_font
+                cell.alignment = Alignment(horizontal='center')
+
+            for row_idx, r in enumerate(resultados, 2):
+                ws.cell(row=row_idx, column=1, value=r['cliente'])
+                ws.cell(row=row_idx, column=2, value=r['notificacion_whatsapp'])
+                ws.cell(row=row_idx, column=3, value=r['notificacion_correo'])
+                ws.cell(row=row_idx, column=4, value=r['EFECTIVO'])
+                ws.cell(row=row_idx, column=5, value=r['DÉBITO DIRECTO'])
+                ws.cell(row=row_idx, column=6, value=r['TARJETA DE CRÉDITO'])
+
+            for col in ws.columns:
+                max_len = max((len(str(c.value or "")) for c in col), default=10)
+                ws.column_dimensions[col[0].column_letter].width = max_len + 4
+
+            wb.save(filepath)
             print(f"✓ Reporte guardado: {filepath}")
             print(f"  Total procesados: {len(resultados)}")
-            
+
             return True
-            
+
         except Exception as e:
             print(f"Error procesando tabla: {e}")
             import traceback

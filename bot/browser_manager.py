@@ -31,6 +31,7 @@ def detectar_navegador():
             ("msedge",            "microsoft-edge"),
             ("brave",             "brave-browser"),
             ("brave",             "brave-origin-nightly"),
+            ("brave",             "brave-origin-beta"),
             ("brave",             "brave"),
             ("chromium",          "chromium"),
             ("chromium-browser",  "chromium-browser"),
