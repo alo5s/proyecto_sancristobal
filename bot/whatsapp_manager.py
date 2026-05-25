@@ -57,7 +57,7 @@ class WhatsAppManager:
             print(f"[WhatsApp] ✗ Error guardando sesión: {e}")
             return False
     
-    def send_message(self, url: str = None, timeout: int = 50000) -> bool:
+    def send_message(self, url: str = None, timeout: int = 50000, on_qr_needed: callable = None) -> bool:
         """
         Envía un mensaje usando una URL ya construida.
         Espera TODO el flujo: carga → QR → login → chat cargado → espera 10s → mensaje enviado.
@@ -67,6 +67,7 @@ class WhatsAppManager:
         Args:
             url: URL completa (ej: de "Continuar en WhatsApp Web" link)
             timeout: Tiempo máximo de espera en ms (default: 50s)
+            on_qr_needed: Callable(msg) invoked when QR scan is required
         
         Returns:
             bool: True si se envió el mensaje correctamente
@@ -94,21 +95,21 @@ class WhatsAppManager:
                 self.page.wait_for_selector("div[contenteditable='true']", timeout=10000)
                 print("[WhatsApp] ✓ Sesión ya activa (no requiere QR)")
             except:
-                # PASO 2: Pide QR - esperar hasta timeout (50s máximo)
+                # PASO 2: Esperar a que el QR se renderice
                 print("[WhatsApp] ⚠ Se requiere escanear código QR")
-                print(f"[WhatsApp] Esperando hasta {timeout//1000} segundos para escanear...")
-                print("[WhatsApp] Por favor, escanea el código QR con tu teléfono")
-                
                 try:
-                    self.page.wait_for_selector("div[contenteditable='true']", timeout=timeout)
-                    print("[WhatsApp] ✓ QR escaneado - Sesión iniciada")
-                    # Guardar sesión después de login exitoso
-                    self._save_session()
+                    self.page.wait_for_selector("canvas", timeout=15000)
+                    print("[WhatsApp] ✓ QR code visible en pantalla")
                 except:
-                    print(f"[WhatsApp] ✗ Tiempo agotado ({timeout//1000}s) esperando QR")
-                    self.page.close()
-                    self.page = None
-                    return False
+                    pass
+
+                if on_qr_needed:
+                    on_qr_needed("Escaneá el código QR de WhatsApp con tu teléfono")
+                print("[WhatsApp] Esperando escaneo del QR...")
+
+                self.page.wait_for_selector("div[contenteditable='true']", timeout=300000)
+                print("[WhatsApp] ✓ QR escaneado - Sesión iniciada")
+                self._save_session()
             
             # PASO 3: Verificar si el número es inválido
             if "Phone number shared via url is invalid." in self.page.content():
@@ -117,15 +118,14 @@ class WhatsAppManager:
                 self.page = None
                 return False
             
-            # PASO 4: Chat cargado (input visible) - esperar que cargue completamente
-            print("[WhatsApp] ✓ Chat cargado, esperando 10 segundos para estabilizar...")
-            self.page.wait_for_timeout(10000)
+            # PASO 4: Esperar que toda la UI termine de renderizar
+            print("[WhatsApp] Esperando que la página termine de renderizar...")
+            self.page.wait_for_load_state("networkidle", timeout=15000)
+            self.page.wait_for_selector("header", timeout=10000)
+            self.page.wait_for_timeout(3000)
+            print("[WhatsApp] ✓ Página renderizada, enviando mensaje...")
             
-            # PASO 5: Verificar que el input siga visible (página cargada completamente)
-            self.page.wait_for_selector("div[contenteditable='true']", timeout=5000)
-            print("[WhatsApp] ✓ Página cargada completamente, enviando mensaje...")
-            
-            # PASO 6: Enviar mensaje (Enter)
+            # PASO 5: Enviar mensaje (Enter)
             self.page.keyboard.press("Enter")
             print("[WhatsApp] ✓ Mensaje enviado")
             

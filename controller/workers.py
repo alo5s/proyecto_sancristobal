@@ -27,6 +27,7 @@ class SessionWorker(QThread):
 
     poliza_terminada = Signal(str)
     persona_no_encontrada = Signal(dict)
+    whatsapp_qr_needed = Signal(str)
 
     # ---------- init ----------
     def __init__(self, show_browser=True):
@@ -213,6 +214,7 @@ class SessionWorker(QThread):
         if not self.bot:
             from bot.paginas.bot_manager import ManagerBot
             self.bot = ManagerBot(self.session.get_page())
+            self.bot._emit_qr_needed = self.whatsapp_qr_needed.emit
 
         # ---------- ETAPA 1 ----------
         if self.current_stage == 1:
@@ -230,45 +232,6 @@ class SessionWorker(QThread):
                 self._reset_bot("✅ Bot finalizado")
             else:
                 self._fail("Error en Etapa 2")
-
-        # ---------- ETAPA 3 ----------
-        elif self.current_stage == 3:
-            if self.bot.etapa_3():
-                self.current_stage = 4
-                self.automation_ok.emit("✅ Etapa 3 completada")
-            else:
-                self._fail("Error en Etapa 3")
-
-        # ---------- ETAPA 4 ----------
-        elif self.current_stage == 4:
-            resultado = self.bot.etapa_4()
-
-            if resultado is True:
-                self.current_stage = 5
-                self.automation_ok.emit("✅ Etapa 4 completada")
-
-            elif isinstance(resultado, dict):
-                self._detener()
-                self.persona_no_encontrada.emit(resultado)
-                return
-
-            else:
-                self._fail("Error en Etapa 4")
-
-        # ---------- ETAPA 5 ----------
-        elif self.current_stage == 5:
-            if self.bot.etapa_5():
-                self.current_stage = 6
-                self.automation_ok.emit("✅ Etapa 5 completada")
-            else:
-                self._fail("Error en Etapa 5")
-
-        # ---------- ETAPA 6 ----------
-        elif self.current_stage == 6:
-            if self.bot.etapa_6():
-                self._reset_bot("🎉 Automatización finalizada", finished=True)
-            else:
-                self._fail("Error en Etapa 6")
 
     # =================================================
     # Borra todos los archivos con ciertas extensiones dentro de la carpeta indicada.

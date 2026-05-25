@@ -8,113 +8,46 @@ import time
 def close_tour_popup(page):
     """
     Detects and closes the tour popup if present.
-    Single quick check - no retry loops.
+    3 retries across page + all iframes, then Escape fallback.
     """
     print("Checking for tour popup...")
 
     try:
-        # Verify we're on the expected page
         current_url = page.url
         if "/gestion-de-cobranzas" not in current_url and "/inicio" not in current_url:
             print(f"Not on expected page, current URL: {current_url}")
             return False
 
-        # Quick check: main page + iframes
-        frames_to_check = [page] + page.frames
+        page.wait_for_load_state("networkidle", timeout=10000)
 
-        for frame in frames_to_check:
-            # Try exact text "Cerrar" first (most reliable)
-            try:
-                close_btn = frame.get_by_text("Cerrar", exact=True)
-                if close_btn.is_visible(timeout=2000):
-                    close_btn.click()
-                    print("✓ Popup closed by exact text 'Cerrar'")
-                    time.sleep(0.3)
-                    return True
-            except Exception:
-                pass
+        selectors = [
+            "button.skip-button",
+            "button.skip-button.link-button",
+            "xpath=//button[contains(@class, 'skip')]",
+            ".introjs-skipbutton",
+            ".shepherd-cancel-icon",
+            "button:has-text('Cerrar')",
+            "button:has-text('Saltar')",
+            "button:has-text('Skip')",
+            ".tour-close",
+            "[aria-label='Close']",
+            ".modal-close",
+            ".close-btn",
+            "button[aria-label='Cerrar']",
+        ]
 
-            # Try common selectors
-            selectors = [
-                "button.skip-button",
-                "button.skip-button.link-button",
-                ".introjs-skipbutton",
-                ".shepherd-cancel-icon",
-                "button:has-text('Cerrar')",
-                "[aria-label='Close']",
-                ".modal-close",
-                ".close-btn",
-            ]
-
-            for selector in selectors:
-                try:
-                    if frame.locator(selector).is_visible(timeout=1500):
-                        frame.locator(selector).click()
-                        print(f"✓ Popup closed with selector: {selector}")
-                        time.sleep(0.3)
-                        return True
-                except Exception:
-                    continue
-
-        # Fallback: Press Escape
-        try:
-            page.keyboard.press("Escape")
-            print("✓ Escape key pressed to close popups")
-            time.sleep(0.3)
-        except Exception:
-            pass
-
-        print("Tour popup not detected")
-        return True  # No popup = success
-
-    except Exception as e:
-        print(f"Error checking popup: {e}")
-        return False
-
-        # Paso 1: Esperar a que la página esté estable
-        try:
-            page.wait_for_load_state("networkidle", timeout=10000)
-        except Exception:
-            pass  # Si no hay red inactiva, continuar
-
-        # Paso 2: Reintentos para capturar popups rápidos
-        max_intentos = 3
-        for intento in range(max_intentos):
-            print(f"Intento {intento + 1} de {max_intentos}...")
-
-            # Recolectar todas las áreas donde buscar: página principal + iframes
-            frames_to_check = [page] + page.frames
-
-            for frame in frames_to_check:
-                # Selectores comunes de botones "Cerrar" en tours y modales
-                selectors = [
-                    "button.skip-button",
-                    "button.skip-button.link-button",
-                    "xpath=//button[contains(@class, 'skip')]",
-                    ".introjs-skipbutton",  # Intro.js
-                    ".shepherd-cancel-icon",  # Shepherd.js
-                    "button:has-text('Cerrar')",
-                    "button:has-text('Saltar')",
-                    "button:has-text('Skip')",
-                    ".tour-close",
-                    "[aria-label='Close']",
-                    ".modal-close",
-                    ".close-btn",
-                    "button[aria-label='Cerrar']",
-                ]
-
-                # Buscar por selectores CSS/XPath
+        for intento in range(3):
+            for frame in [page] + page.frames:
                 for selector in selectors:
                     try:
                         if frame.locator(selector).is_visible(timeout=2000):
                             frame.locator(selector).click()
-                            print(f"✓ Popup cerrado con selector: {selector}")
-                            time.sleep(0.5)  # Esperar animación
+                            print(f"✓ Popup cerrado con: {selector}")
+                            time.sleep(0.5)
                             return True
                     except Exception:
-                        continue
+                        pass
 
-                # Buscar por texto exacto "Cerrar"
                 try:
                     close_btn = frame.get_by_text("Cerrar", exact=True)
                     if close_btn.is_visible(timeout=2000):
@@ -125,7 +58,6 @@ def close_tour_popup(page):
                 except Exception:
                     pass
 
-                # Buscar por texto parcial "Cerrar" (último recurso)
                 try:
                     close_btn = frame.get_by_text("Cerrar", exact=False)
                     if close_btn.first.is_visible(timeout=2000):
@@ -136,23 +68,15 @@ def close_tour_popup(page):
                 except Exception:
                     pass
 
-            # Si no se encontró en este intento, esperar antes del siguiente
-            if intento < max_intentos - 1:
+            if intento < 2:
                 time.sleep(0.5)
 
-        # Paso 3: Fallback - Presionar Escape para cerrar cualquier modal
-        try:
-            page.keyboard.press("Escape")
-            print("✓ Tecla Escape presionada para cerrar popups")
-            time.sleep(0.5)
-        except Exception:
-            pass
-
-        print("Popup de tour no detectado")
-        return False
+        page.keyboard.press("Escape")
+        print("✓ Escape key pressed to close popups")
+        return True
 
     except Exception as e:
-        print(f"Error verificando popup: {e}")
+        print(f"Error checking popup: {e}")
         return False
 
 
@@ -162,6 +86,7 @@ class ManagerBot:
     def __init__(self, page):
         self.page = page
         self.url_gestion = "https://productores.sancristobal.com.ar/deudas-y-cobranzas/gestion-de-cobranzas"
+        self._qr_alert_shown = False
 
     def detener(self):
         """Detiene la automatización"""
@@ -539,8 +464,16 @@ class ManagerBot:
                     context = self.page.context
                     manager = WhatsAppManager(context)
                     
+                    on_qr_needed = None
+                    if not self._qr_alert_shown:
+                        def _qr_alert(msg):
+                            if hasattr(self, '_emit_qr_needed') and self._emit_qr_needed:
+                                self._emit_qr_needed(msg)
+                        on_qr_needed = _qr_alert
+                    
                     # Enviar mensaje usando la URL del sistema
-                    if manager.send_message(url=wa_href, timeout=50000):
+                    if manager.send_message(url=wa_href, timeout=50000, on_qr_needed=on_qr_needed):
+                        self._qr_alert_shown = True
                         print("✓ Mensaje enviado por WhatsApp (URL del sistema)")
                         result['whapp'] = True
                     else:

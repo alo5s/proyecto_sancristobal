@@ -30,6 +30,7 @@ class AppController:
 
         self.worker.error.connect(self.on_worker_error)
         self.worker.persona_no_encontrada.connect(self.show_persona_no_encontrada)
+        self.worker.whatsapp_qr_needed.connect(self.on_whatsapp_qr_needed)
 
         # ---------- vista login ----------
         self.login_view = LoginView()
@@ -130,6 +131,10 @@ class AppController:
     def on_automation_error(self, msg):
         if hasattr(self, "home"):
             self.home.show_bot_error(msg)
+
+    def on_whatsapp_qr_needed(self, msg):
+        from PySide6.QtWidgets import QMessageBox
+        QMessageBox.information(self.window, "WhatsApp", msg)
 
     # =================================================
     # ERRORES CRÍTICOS
